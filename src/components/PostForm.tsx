@@ -131,14 +131,8 @@ const PostForm = ({
         <button
           type="submit"
           className="w-full mt-4 bg-[#FFF0D1] text-[#3b3030] p-2 rounded font-bold"
-          disabled={createMutation.isLoading || updateMutation.isLoading}
         >
-          {createMutation.isLoading || updateMutation.isLoading
-            ? "Submitting..."
-            : isEditing
-            ? "Save"
-            : "Submit"}{" "}
-          {/* Switch between Submit and Save */}
+          {isEditing ? "Save" : "Submit"} {/* Switch between Submit and Save */}
         </button>
       </form>
     </div>
