@@ -1,17 +1,19 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import * as yup from "yup";
 
-import { createPost } from "../api/posts";
-import { useState } from "react";
+import { createPost, updatePost } from "../api/posts";
 
-type PostsFormProps = {
+type PostFormProps = {
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
   posts: Post[];
   setPosts: (posts: Post[]) => void;
+  currentPost?: Post | null;
+  setCurrentPost: React.Dispatch<React.SetStateAction<Post | null>>;
 };
 
 const schema = yup.object().shape({
@@ -24,51 +26,77 @@ const PostForm = ({
   setIsEditing,
   posts,
   setPosts,
-}: PostsFormProps) => {
-  const [post, setPost] = useState<Post>({
-    title: "",
-    body: "",
-  });
+  currentPost,
+  setCurrentPost,
+}: PostFormProps) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm({
     resolver: yupResolver(schema),
   });
 
-  const mutation = useMutation<unknown, Error, Post>({
+  const createMutation = useMutation({
     mutationFn: createPost,
-    onSuccess: () => {
+    onSuccess: (newPost) => {
       toast.success("Post created successfully");
-      setIsEditing(false);
-      setPosts([post, ...posts]);
-      reset();
+      setPosts([newPost as Post, ...posts]);
+      resetForm();
     },
     onError: (error: Error) => {
-      console.log(error);
+      console.error(error);
       toast.error("Error creating post");
     },
   });
 
-  const onSubmit = (post: Post) => {
-    setPost({
-      id: Math.floor(Math.random() * 1000) + 1,
-      ...post,
-    });
-    mutation.mutate(post);
+  const updateMutation = useMutation({
+    mutationFn: ({ id, post }: { id: number; post: Post }) =>
+      updatePost(id, post),
+    onSuccess: (updatedPost) => {
+      toast.success("Post updated successfully");
+      setPosts(posts.map((p) => (p.id === updatedPost.id ? updatedPost : p)));
+      resetForm();
+    },
+    onError: (error: Error) => {
+      console.error(error);
+      toast.error("Error updating post");
+    },
+  });
+
+  const resetForm = () => {
+    reset();
+    setIsEditing(false);
+    setCurrentPost(null);
+  };
+
+  useEffect(() => {
+    if (currentPost) {
+      setValue("title", currentPost.title);
+      setValue("body", currentPost.body);
+    }
+  }, [currentPost, setValue]);
+
+  // Handle form submission
+  const onSubmit = (formData: Post) => {
+    if (isEditing && currentPost) {
+      updateMutation.mutate({ id: currentPost.id!, post: formData });
+    } else {
+      const newPost = {
+        id: Math.floor(Math.random() * 1000) + 1,
+        ...formData,
+      };
+      createMutation.mutate(newPost);
+    }
   };
 
   return (
     <div className="p-4">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <h2
-          className="form_heading 
-        text-2xl font-bold text-[#FFF0D1] mb-4 text-center
-        "
-        >
-          Create Post
+        <h2 className="form_heading text-2xl font-bold text-[#FFF0D1] mb-4 text-center">
+          {isEditing ? "Edit Post" : "Create Post"}
         </h2>
         <div className="mb-4">
           <label
@@ -103,9 +131,14 @@ const PostForm = ({
         <button
           type="submit"
           className="w-full mt-4 bg-[#FFF0D1] text-[#3b3030] p-2 rounded font-bold"
-          disabled={mutation.isLoading}
+          disabled={createMutation.isLoading || updateMutation.isLoading}
         >
-          {mutation.isLoading ? "Submitting..." : "Submit"}
+          {createMutation.isLoading || updateMutation.isLoading
+            ? "Submitting..."
+            : isEditing
+            ? "Save"
+            : "Submit"}{" "}
+          {/* Switch between Submit and Save */}
         </button>
       </form>
     </div>
