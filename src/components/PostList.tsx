@@ -1,25 +1,59 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { getPosts } from "../api/posts";
+import PostItem from "./PostItem";
 
-const PostsList = () => {
+type PosteListProps = {
+  search: string;
+  posts: Post[];
+  setPosts: React.Dispatch<React.SetStateAction<Post[]>>;
+};
+
+const PostsList = ({ search, posts, setPosts }: PosteListProps) => {
+  const [page, setPage] = useState(1);
   const { data, isLoading, error } = useQuery({
-    queryKey: ["posts"], // Wrap the string value in an array
-    queryFn: () => getPosts(1),
+    queryKey: ["posts", search, page],
+    queryFn: () => getPosts(page, search),
   });
 
-  if (isLoading) return <p>Loading...</p>;
+  useEffect(() => {
+    if (data) {
+      setPosts((prevPosts) => [...prevPosts, ...data]);
+    }
+  }, [data, setPosts]);
+
+  const loadMorePosts = () => {
+    setPage((prevPage) => prevPage + 1);
+  };
+
+  if (isLoading && page === 1)
+    return (
+      <p className="text-center text-2xl font-bold text-[#FFF0D1]">
+        Loading...
+      </p>
+    );
+
   if (error) return <p>Error fetching posts</p>;
+
+  if (posts.length === 0 && !isLoading)
+    return (
+      <p className="text-center text-2xl font-bold text-[#FFF0D1]">
+        No posts match your search
+      </p>
+    );
 
   return (
     <div className="grid gap-4">
-      {data.map((post: post) => (
-        <div key={post.id} className="p-4 border rounded-md">
-          <h2 className="font-bold">{post.title}</h2>
-          <p>{post.body.slice(0, 100)}...</p>
-          <button className="text-blue-500">Read More</button>
-        </div>
+      {posts.map((post: Post) => (
+        <PostItem key={post.id} post={post} />
       ))}
+      <button
+        onClick={loadMorePosts}
+        className="p-2 mt-4 text-[#3b3030] bg-[#FFF0D1] -500 rounded font-bold"
+      >
+        {isLoading ? "Loading..." : "Load More"}
+      </button>
     </div>
   );
 };

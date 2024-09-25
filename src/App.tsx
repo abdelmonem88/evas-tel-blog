@@ -1,35 +1,47 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import BlogHeader from "./components/BlogHeader";
+import PostsList from "./components/PostList";
+import PostForm from "./components/PostForm";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [search, setSearch] = useState("");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <BlogHeader search={search} handleSearch={handleSearch} />
+      <div className="flex flex-col gap-4 p-4 sm:flex-row-reverse">
+        <div className="w-full sm:w-1/4">
+          <PostForm
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
+            posts={posts}
+            setPosts={setPosts}
+          />
+        </div>
+        <div
+          className="w-full overflow-y-scroll sm:w-3/4"
+          style={{ maxHeight: "calc(100vh - 108px)" }}
+        >
+          <PostsList search={search} posts={posts} setPosts={setPosts} />
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <ToastContainer
+        position="top-center"
+        autoClose={3000}
+        pauseOnHover
+        theme="colored"
+      />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
